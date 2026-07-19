@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>บันทึกค่าเที่ยวรถ</title>
-    <!-- นำเข้า LINE SDK เพื่อให้แอปคุยกับ LINE ในโทรศัพท์ได้ -->
+    <!-- นำเข้า LINE SDK -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body {
@@ -18,8 +18,9 @@
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
-        h2 {
+        h2, h3 {
             text-align: center;
             color: #333;
         }
@@ -32,7 +33,7 @@
             font-weight: bold;
             color: #555;
         }
-        input, select {
+        input {
             width: 100%;
             padding: 10px;
             box-sizing: border-box;
@@ -55,6 +56,50 @@
         button:hover {
             background-color: #218838;
         }
+        /* สไตล์ของตารางประวัติ */
+        .history-container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .btn-send {
+            background-color: #28a745;
+            color: white;
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            width: auto;
+            margin-top: 0;
+        }
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            width: auto;
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
@@ -69,7 +114,7 @@
 
     <div class="form-group">
         <label for="route">เส้นทาง (จากไหนไปไหน):</label>
-        <input type="text" id="route" placeholder="เช่น กรุงเทพฯ - เชียงใหม่">
+        <input type="text" id="route" placeholder="เช่น ปทุม-ลาดหลุมแก้ว">
     </div>
 
     <div class="form-group">
@@ -77,21 +122,40 @@
         <input type="number" id="price" placeholder="ใส่จำนวนเงิน">
     </div>
 
-    <button onclick="sendData()">💾 บันทึกและส่งข้อมูล</button>
+    <button onclick="saveToWeb()">💾 บันทึกในเว็บ</button>
+</div>
+
+<!-- ส่วนของตารางแสดงข้อมูล -->
+<div class="history-container">
+    <h3>📊 ตารางประวัติค่าเที่ยวรถ</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>รถ</th>
+                <th>เส้นทาง</th>
+                <th>ค่าเที่ยว</th>
+                <th>จัดการ</th>
+            </tr>
+        </thead>
+        <tbody id="historyTableBody">
+            <!-- ข้อมูลจากเว็บจะมาโผล่ตรงนี้ -->
+        </tbody>
+    </table>
 </div>
 
 <script>
-    // 1. สั่งให้ระบบ LIFF เริ่มทำงานทันทีที่เปิดหน้าเว็บ
+    // 1. เริ่มทำงานระบบ LIFF
     async function main() {
         await liff.init({ liffId: "2010757302-yGs8r3U0" });
         if (!liff.isLoggedIn()) {
-            liff.login(); // ถ้าเปิดมาแล้วยังไม่ได้ล็อกอิน ให้เด้งล็อกอิน LINE
+            liff.login();
         }
+        displayHistory(); // เปิดมาให้โหลดตารางมาโชว์ทันที
     }
     main();
 
-    // 2. ฟังก์ชันส่งข้อมูลพอกดปุ่มบันทึก
-    function sendData() {
+    // 2. ฟังก์ชันบันทึกข้อมูลลงบราวเซอร์เว็บ
+    function saveToWeb() {
         const truckId = document.getElementById('truckId').value;
         const route = document.getElementById('route').value;
         const price = document.getElementById('price').value;
@@ -101,19 +165,81 @@
             return;
         }
 
-        // จัดข้อความที่จะส่งกลับเข้าห้องแชท LINE
+        // ดึงข้อมูลเก่าในเว็บออกมาก่อน (ถ้าไม่มีให้เป็นอาร์เรย์ว่าง)
+        let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
+
+        // เพิ่มข้อมูลใหม่เข้าไป
+        const newTrip = {
+            id: Date.now(), // ใช้เวลาเป็น ID สุ่มไม่ให้ซ้ำกัน
+            truckId: truckId,
+            route: route,
+            price: price
+        };
+        history.push(newTrip);
+
+        // เซฟกลับลงเว็บ
+        localStorage.setItem('tripHistory', JSON.stringify(history));
+
+        // เคลียร์ช่องกรอกข้อมูลให้ว่าง
+        document.getElementById('truckId').value = '';
+        document.getElementById('route').value = '';
+        document.getElementById('price').value = '';
+
+        alert('บันทึกข้อมูลลงตารางเรียบร้อยมึง!');
+        displayHistory(); // อัปเดตตารางให้เห็นทันที
+    }
+
+    // 3. ฟังก์ชันดึงข้อมูลมาวาดลงตาราง
+    function displayHistory() {
+        const history = JSON.parse(localStorage.getItem('tripHistory')) || [];
+        const tableBody = document.getElementById('historyTableBody');
+        tableBody.innerHTML = ''; // เคลียร์ตารางเก่า
+
+        if (history.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#999;">ยังไม่มีข้อมูลบันทึกไว้มึง</td></tr>`;
+            return;
+        }
+
+        // วนลูปเอาข้อมูลมาใส่ในตาราง
+        history.forEach((trip) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${trip.truckId}</td>
+                <td>${trip.route}</td>
+                <td>${trip.price} บาท</td>
+                <td>
+                    <button class="btn-send" onclick="sendToLine('${trip.truckId}', '${trip.route}', '${trip.price}')">🟢 ส่ง LINE</button>
+                    <button class="btn-delete" onclick="deleteTrip(${trip.id})">❌ ลบ</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    // 4. ฟังก์ชันส่งข้อมูลเข้า LINE เฉพาะแถวที่เลือก
+    function sendToLine(truckId, route, price) {
         const messageText = `📋 บันทึกค่าเที่ยวรถใหม่\n🚛 รถ: ${truckId}\n📍 เส้นทาง: ${route}\n💰 ค่าเที่ยว: ${price} บาท`;
 
-        // สั่งส่งข้อความเข้าไปในแชทและปิดหน้าต่างเว็บทันที
         liff.sendMessages([{
             type: 'text',
             text: messageText
         }]).then(() => {
-            liff.closeWindow(); // ส่งเสร็จปุ๊บ ปิดหน้าจอเว็บแอปทันที
+            alert('ส่งเข้า LINE สำเร็จแล้วมึง!');
         }).catch((err) => {
             console.error('เกิดข้อผิดพลาด:', err);
             alert('ส่งข้อมูลไม่สำเร็จมึง ลองดูอีกที');
         });
+    }
+
+    // 5. ฟังก์ชันลบข้อมูลออกจากตารางเว็บ
+    function deleteTrip(id) {
+        if (confirm('มึงแน่ใจนะว่าจะลบรายการนี้?')) {
+            let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
+            // กรองเอาไอดีที่ไม่ต้องการลบเก็บไว้
+            history = history.filter(trip => trip.id !== id);
+            localStorage.setItem('tripHistory', JSON.stringify(history));
+            displayHistory(); // อัปเดตตารางใหม่
+        }
     }
 </script>
 
