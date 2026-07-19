@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>บันทึกค่าเที่ยวรถ</title>
-    <!-- นำเข้า LINE SDK -->
+    <!-- นำเข้า LINE SDK และ ไลบรารีแปลงหน้าจอเป็นรูปภาพ (html2canvas) -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
@@ -15,25 +16,27 @@
         label { display: block; font-weight: bold; margin-bottom: 5px; color: #4b5563; }
         input[type="text"], input[type="date"], input[type="number"] { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 16px; }
         
-        /* ปุ่มหลัก */
         .btn-main { width: 100%; color: white; border: none; padding: 14px; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; }
         .btn-success { background-color: #10b981; }
         .btn-success:hover { background-color: #059669; }
         .btn-excel { background-color: #0284c7; margin-bottom: 15px; }
         .btn-excel:hover { background-color: #0369a1; }
         
-        /* สไตล์ตารางประวัติ */
-        .table-container { margin-top: 30px; overflow-x: auto; }
+        /* ตารางประวัติ */
+        .table-container { margin-top: 15px; overflow-x: auto; background: white; padding: 10px; border-radius: 8px; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; min-width: 800px; }
         th, td { padding: 10px 12px; border: 1px solid #e5e7eb; text-align: center; }
         th { background-color: #1e3a8a; color: white; font-weight: 600; }
         tr:nth-child(even) { background-color: #f9fafb; }
         
-        /* สไตล์ปุ่มในตาราง */
         .btn-action { padding: 6px 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; color: white; margin: 2px; }
         .btn-send { background-color: #06b6d4; }
         .btn-delete { background-color: #ef4444; }
         input[type="checkbox"] { transform: scale(1.3); cursor: pointer; }
+
+        /* พื้นที่แสดงรูปภาพที่แปลงเสร็จแล้ว */
+        .image-result-container { margin-top: 25px; text-align: center; border: 2px dashed #3b82f6; padding: 15px; border-radius: 8px; background-color: #eff6ff; display: none; }
+        .image-result-container img { max-width: 100%; height: auto; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -41,7 +44,7 @@
 <div class="container">
     <h2>🚚 ระบบบันทึกค่าเที่ยวรถ</h2>
     
-    <!-- ส่วนฟอร์มกรอกข้อมูล -->
+    <!-- ฟอร์มกรอกข้อมูล -->
     <div class="form-group">
         <label>📅 วันที่ / เดือน / ปี:</label>
         <input type="date" id="dateInput">
@@ -74,10 +77,18 @@
     <!-- ส่วนตารางประวัติ -->
     <h3>📊 ตารางประวัติค่าเที่ยวรถ</h3>
     
-    <!-- ปุ่มดาวน์โหลด Excel สำหรับสิ้นเดือน -->
-    <button class="btn-main btn-excel" onclick="exportToExcel()">📥 ดาวน์โหลดรายงานสิ้นเดือน (Excel/CSV)</button>
+    <!-- เปลี่ยนฟังก์ชันเป็นสร้างรูปภาพตารางแทนการดาวน์โหลดไฟล์ -->
+    <button class="btn-main btn-excel" onclick="generateTableImage()">📸 คลิกเพื่อสร้างรูปภาพตารางประวัติสรุปงาน</button>
 
-    <div class="table-container">
+    <!-- บล็อกแสดงรูปภาพที่แปลงเสร็จแล้วเพื่อให้กดเซฟค้างได้ -->
+    <div class="image-result-container" id="imageResultContainer">
+        <h4 style="color: #1e40af; margin: 0;">✨ สร้างรูปภาพสำเร็จแล้วมึง!</h4>
+        <p style="font-size: 13px; color: #4b5563; margin: 5px 0 10px 0;">👇 เอานิ้วกดค้างที่รูปภาพด้านล่างเพื่อ "บันทึกรูปภาพ" หรือ "แชร์เข้าไลน์" ได้เลยเพื่อน</p>
+        <div id="imagePlaceHolder"></div>
+    </div>
+
+    <!-- กำหนด ID ครอบตารางเพื่อใช้จับภาพหน้าจอเฉพาะส่วนตาราง -->
+    <div class="table-container" id="captureTarget">
         <table>
             <thead>
                 <tr>
@@ -96,31 +107,24 @@
                 </tr>
             </thead>
             <tbody id="historyTableBody">
-                <!-- ข้อมูลจาก JavaScript จะถูกวาดตรงนี้ -->
+                <!-- ข้อมูล JavaScript -->
             </tbody>
         </table>
     </div>
 </div>
 
 <script>
-    // ตั้งค่าช่องวันที่หน้าเว็บให้เป็นวันปัจจุบันอัตโนมัติ
     document.getElementById('dateInput').valueAsDate = new Date();
 
-    // 1. เริ่มทำงานระบบ LINE LIFF
     async function main() {
         try {
             await liff.init({ liffId: "2010757302-yGs8r3U0" });
-            if (!liff.isLoggedIn()) {
-                liff.login();
-            }
+            if (!liff.isLoggedIn()) { liff.login(); }
             displayHistory();
-        } catch (error) {
-            console.error("LIFF ล้มเหลว:", error);
-        }
+        } catch (error) { console.error("LIFF ล้มเหลว:", error); }
     }
     main();
 
-    // 2. ฟังก์ชันบันทึกข้อมูลลงบราวเซอร์เว็บ
     function saveToWeb() {
         const dateInput = document.getElementById('dateInput').value;
         const truckId = document.getElementById('truckId').value;
@@ -135,7 +139,6 @@
 
         const dateObj = new Date(dateInput);
         const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
-
         let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
         
         const newTrip = {
@@ -145,12 +148,8 @@
             startRoute: startRoute,
             endRoute: endRoute,
             basePrice: basePrice,
-            workNear: false,
-            workMid: false,
-            workFar: false,
-            mtNear: false,
-            mtMid: false,
-            mtFar: false
+            workNear: false, workMid: false, workFar: false,
+            mtNear: false, mtMid: false, mtFar: false
         };
 
         history.push(newTrip);
@@ -164,27 +163,22 @@
         displayHistory();
     }
 
-    // 3. ฟังก์ชันดึงเงินรวม (ปรับปรุง: เอาบวกเงินออก ให้ดึงค่าเที่ยวฐานตรงๆ ไม่เพิ่มเงิน)
     function calculateTotal(item) {
         return item.basePrice; 
     }
 
-    // 4. ฟังก์ชันเมื่อติ๊ก Checkbox ให้บันทึกข้อมูลแบบเงียบๆ ไม่ปรับตัวเลขเงิน
     function updateCheckbox(id, field, checkbox) {
         let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
         const index = history.findIndex(item => item.id === id);
-        
         if (index !== -1) {
             history[index][field] = checkbox.checked;
             localStorage.setItem('tripHistory', JSON.stringify(history));
         }
     }
 
-    // 5. ฟังก์ชันวาดตารางประวัติลงหน้าเว็บ
     function displayHistory() {
         const tbody = document.getElementById('historyTableBody');
         tbody.innerHTML = '';
-        
         let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
 
         if (history.length === 0) {
@@ -215,11 +209,44 @@
         });
     }
 
-    // 6. ฟังก์ชันส่งข้อมูลสรุปงานเข้า LINE
+    // 📸 ฟังก์ชันเด็ด: จับภาพตารางประวัติทั้งหมดแปลงเป็นรูปภาพ
+    function generateTableImage() {
+        let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
+        if (history.length === 0) {
+            alert('ไม่มีข้อมูลในตารางจะให้แคปเลยมึง กรอกข้อมูลก่อน!');
+            return;
+        }
+
+        const target = document.getElementById('captureTarget');
+        const container = document.getElementById('imageResultContainer');
+        const placeholder = document.getElementById('imagePlaceHolder');
+
+        // สั่งให้ไลบรารีส่องและวาดพื้นที่ตารางออกมาเป็นภาพ Canvas
+        html2canvas(target, {
+            backgroundColor: "#ffffff",
+            logging: false,
+            useCORS: true
+        }).then(canvas => {
+            placeholder.innerHTML = '';
+            
+            // แปลง Canvas ให้กลายเป็นแท็ก <img> รูปภาพปกติ
+            const img = document.createElement('img');
+            img.src = canvas.toDataURL('image/png');
+            
+            placeholder.appendChild(img);
+            container.style.display = 'block'; // เปิดบล็อกแสดงผล
+            
+            // เลื่อนหน้าจอลงมาที่จุดโชว์รูปภาพให้แบบอัตโนมัติ
+            container.scrollIntoView({ behavior: 'smooth' });
+        }).catch(err => {
+            alert('เกิดข้อผิดพลาดในการสร้างรูปภาพมึงลองดูใหม่ดิ๊');
+            console.error(err);
+        });
+    }
+
     function sendToLine(id) {
         let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
         const item = history.find(t => t.id === id);
-
         if (!item) return;
 
         const checkNear = item.workNear ? "✅ ใกล้" : "❌ ใกล้";
@@ -235,74 +262,25 @@
                             `📍 เส้นทาง: ${item.startRoute} - ${item.endRoute}\n` +
                             `------------------------\n` +
                             `📊 รายการงานที่วิ่ง:\n` +
-                            `${checkNear}\n` +
-                            `${checkMid}\n` +
-                            `${checkFar}\n` +
-                            `${checkMtNear}\n` +
-                            `${checkMtMid}\n` +
-                            `${checkMtFar}\n` +
+                            `${checkNear} | ${checkMid} | ${checkFar}\n` +
+                            `${checkMtNear} | ${checkMtMid} | ${checkMtFar}\n` +
                             `------------------------\n` +
                             `💰 ค่าเที่ยว: ${calculateTotal(item)} บาท`;
 
-        liff.sendMessages([{
-            type: 'text',
-            text: messageText
-        }]).then(() => {
+        liff.sendMessages([{ type: 'text', text: messageText }]).then(() => {
             alert('ส่งข้อมูลเข้าแชทเรียบร้อยแล้วมึง! 🚀');
-        }).catch((err) => {
-            console.error('ส่งไลน์ล้มเหลว', err);
-        });
+        }).catch((err) => { console.error('ส่งไลน์ล้มเหลว', err); });
     }
 
-    // 7. ฟังก์ชันดึงรายงานออกมาเป็นไฟล์สำหรับสิ้นเดือน
-    function exportToExcel() {
-        let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
-        if (history.length === 0) {
-            alert('ไม่มีข้อมูลในตารางจะให้ดึงเลยมึง!');
-            return;
-        }
-
-        let csvContent = "\uFEFF"; 
-        csvContent += "วัน/เดือน/ปี,ทะเบียนรถ,ต้นทาง,ปลายทาง,งานใกล้,งานกลาง,งานไกล,MTใกล้,MTกลาง,MTไกล,ค่าเที่ยว(บาท)\n";
-
-        history.forEach(item => {
-            const row = [
-                item.date,
-                item.truckId,
-                item.startRoute,
-                item.endRoute,
-                item.workNear ? "TRUE" : "FALSE",
-                item.workMid ? "TRUE" : "FALSE",
-                item.workFar ? "TRUE" : "FALSE",
-                item.mtNear ? "TRUE" : "FALSE",
-                item.mtMid ? "TRUE" : "FALSE",
-                item.mtFar ? "TRUE" : "FALSE",
-                calculateTotal(item)
-            ].join(",");
-            csvContent += row + "\n";
-        });
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `รายงานค่าเที่ยวรถ_สิ้นเดือน_${new Date().getMonth()+1}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    // 8. ฟังก์ชันลบแถวข้อมูล
     function deleteTrip(id) {
         if(confirm('จะลบรายการนี้จริงหรอถามจริง?')) {
             let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
             history = history.filter(item => item.id !== id);
             localStorage.setItem('tripHistory', JSON.stringify(history));
             displayHistory();
+            document.getElementById('imageResultContainer').style.display = 'none';
         }
     }
 </script>
-
 </body>
 </html>
