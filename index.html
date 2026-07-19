@@ -33,10 +33,6 @@
         .btn-send { background-color: #06b6d4; }
         .btn-delete { background-color: #ef4444; }
         input[type="checkbox"] { transform: scale(1.3); cursor: pointer; }
-
-        /* พื้นที่แสดงรูปภาพที่แปลงเสร็จแล้ว */
-        .image-result-container { margin-top: 25px; text-align: center; border: 2px dashed #3b82f6; padding: 15px; border-radius: 8px; background-color: #eff6ff; display: none; }
-        .image-result-container img { max-width: 100%; height: auto; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -77,17 +73,8 @@
     <!-- ส่วนตารางประวัติ -->
     <h3>📊 ตารางประวัติค่าเที่ยวรถ</h3>
     
-    <!-- เปลี่ยนฟังก์ชันเป็นสร้างรูปภาพตารางแทนการดาวน์โหลดไฟล์ -->
     <button class="btn-main btn-excel" onclick="generateTableImage()">📸 คลิกเพื่อสร้างรูปภาพตารางประวัติสรุปงาน</button>
 
-    <!-- บล็อกแสดงรูปภาพที่แปลงเสร็จแล้วเพื่อให้กดเซฟค้างได้ -->
-    <div class="image-result-container" id="imageResultContainer">
-        <h4 style="color: #1e40af; margin: 0;">✨ สร้างรูปภาพสำเร็จแล้วมึง!</h4>
-        <p style="font-size: 13px; color: #4b5563; margin: 5px 0 10px 0;">👇 เอานิ้วกดค้างที่รูปภาพด้านล่างเพื่อ "บันทึกรูปภาพ" หรือ "แชร์เข้าไลน์" ได้เลยเพื่อน</p>
-        <div id="imagePlaceHolder"></div>
-    </div>
-
-    <!-- กำหนด ID ครอบตารางเพื่อใช้จับภาพหน้าจอเฉพาะส่วนตาราง -->
     <div class="table-container" id="captureTarget">
         <table>
             <thead>
@@ -175,7 +162,40 @@
             localStorage.setItem('tripHistory', JSON.stringify(history));
         }
     }
-// 6. ฟังก์ชันจับภาพตารางประวัติทั้งหมดแปลงเป็นรูปภาพ (เวอร์ชันแก้ปัญหา LINE บล็อกเซฟรูป)
+
+    function displayHistory() {
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = '';
+        let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
+
+        if (history.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="12" style="color:#999;">ยังไม่มีข้อมูลบันทึกไว้มึง</td></tr>`;
+            return;
+        }
+
+        history.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.date}</td>
+                <td>${item.truckId}</td>
+                <td>${item.startRoute}</td>
+                <td>${item.endRoute}</td>
+                <td><input type="checkbox" ${item.workNear ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'workNear', this)"></td>
+                <td><input type="checkbox" ${item.workMid ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'workMid', this)"></td>
+                <td><input type="checkbox" ${item.workFar ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'workFar', this)"></td>
+                <td><input type="checkbox" ${item.mtNear ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'mtNear', this)"></td>
+                <td><input type="checkbox" ${item.mtMid ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'mtMid', this)"></td>
+                <td><input type="checkbox" ${item.mtFar ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'mtFar', this)"></td>
+                <td style="font-weight:bold; color:#1e3a8a;">${calculateTotal(item)} บาท</td>
+                <td>
+                    <button class="btn-action btn-send" onclick="sendToLine(${item.id})">ส่ง LINE</button>
+                    <button class="btn-action btn-delete" onclick="deleteTrip(${item.id})">ลบ</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
     function generateTableImage() {
         let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
         if (history.length === 0) {
@@ -185,16 +205,12 @@
 
         const target = document.getElementById('captureTarget');
 
-        // สั่งแคปตาราง
         html2canvas(target, {
             backgroundColor: "#ffffff",
             logging: false,
             useCORS: true
         }).then(canvas => {
-            // แปลงเป็นข้อมูลรูปภาพ Base64
             const imgData = canvas.toDataURL('image/png');
-            
-            // สร้างหน้าต่าง Pop-up ใหม่เพื่อเปิดรูปภาพนี้แยกออกมา
             const newWindow = window.open();
             if (newWindow) {
                 newWindow.document.write(`
@@ -218,41 +234,6 @@
             } else {
                 alert('บราวเซอร์บล็อก Pop-up มึงกดอนุญาตให้เปิดหน้าต่างใหม่ก่อนนะมึง!');
             }
-        }).catch(err => {
-            alert('เกิดข้อผิดพลาดในการสร้างรูปภาพมึงลองดูใหม่ดิ๊');
-            console.error(err);
-        });
-    }
-
-    // 📸 ฟังก์ชันเด็ด: จับภาพตารางประวัติทั้งหมดแปลงเป็นรูปภาพ
-    function generateTableImage() {
-        let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
-        if (history.length === 0) {
-            alert('ไม่มีข้อมูลในตารางจะให้แคปเลยมึง กรอกข้อมูลก่อน!');
-            return;
-        }
-
-        const target = document.getElementById('captureTarget');
-        const container = document.getElementById('imageResultContainer');
-        const placeholder = document.getElementById('imagePlaceHolder');
-
-        // สั่งให้ไลบรารีส่องและวาดพื้นที่ตารางออกมาเป็นภาพ Canvas
-        html2canvas(target, {
-            backgroundColor: "#ffffff",
-            logging: false,
-            useCORS: true
-        }).then(canvas => {
-            placeholder.innerHTML = '';
-            
-            // แปลง Canvas ให้กลายเป็นแท็ก <img> รูปภาพปกติ
-            const img = document.createElement('img');
-            img.src = canvas.toDataURL('image/png');
-            
-            placeholder.appendChild(img);
-            container.style.display = 'block'; // เปิดบล็อกแสดงผล
-            
-            // เลื่อนหน้าจอลงมาที่จุดโชว์รูปภาพให้แบบอัตโนมัติ
-            container.scrollIntoView({ behavior: 'smooth' });
         }).catch(err => {
             alert('เกิดข้อผิดพลาดในการสร้างรูปภาพมึงลองดูใหม่ดิ๊');
             console.error(err);
@@ -293,7 +274,6 @@
             history = history.filter(item => item.id !== id);
             localStorage.setItem('tripHistory', JSON.stringify(history));
             displayHistory();
-            document.getElementById('imageResultContainer').style.display = 'none';
         }
     }
 </script>
