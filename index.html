@@ -7,238 +7,316 @@
     <!-- นำเข้า LINE SDK -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f9;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        h2, h3 {
-            text-align: center;
-            color: #333;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 16px;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        button:hover {
-            background-color: #218838;
-        }
-        /* สไตล์ของตารางประวัติ */
-        .history-container {
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-            font-size: 14px;
-        }
-        th {
-            background-color: #007bff;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        .btn-send {
-            background-color: #28a745;
-            color: white;
-            padding: 6px 10px;
-            font-size: 12px;
-            border-radius: 4px;
-            width: auto;
-            margin-top: 0;
-        }
-        .btn-delete {
-            background-color: #dc3545;
-            color: white;
-            padding: 6px 10px;
-            font-size: 12px;
-            border-radius: 4px;
-            width: auto;
-            margin-top: 0;
-        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h2, h3 { text-align: center; color: #2c3e50; margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #4b5563; }
+        input[type="text"], input[type="date"], input[type="number"] { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 16px; }
+        
+        /* ปุ่มหลัก */
+        .btn-main { width: 100%; color: white; border: none; padding: 14px; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .btn-success { background-color: #10b981; }
+        .btn-success:hover { background-color: #059669; }
+        .btn-excel { background-color: #0284c7; margin-bottom: 15px; }
+        .btn-excel:hover { background-color: #0369a1; }
+        
+        /* สไตล์ตารางประวัติ */
+        .table-container { margin-top: 30px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; min-width: 800px; }
+        th, td { padding: 10px 12px; border: 1px solid #e5e7eb; text-align: center; }
+        th { background-color: #1e3a8a; color: white; font-weight: 600; }
+        tr:nth-child(even) { background-color: #f9fafb; }
+        
+        /* สไตล์ปุ่มในตาราง */
+        .btn-action { padding: 6px 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; color: white; margin: 2px; }
+        .btn-send { background-color: #06b6d4; }
+        .btn-delete { background-color: #ef4444; }
+        input[type="checkbox"] { transform: scale(1.3); cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🚚 บันทึกค่าเที่ยวรถ</h2>
+    <h2>🚚 ระบบบันทึกค่าเที่ยวรถ</h2>
+    
+    <!-- ส่วนฟอร์มกรอกข้อมูล -->
+    <div class="form-group">
+        <label>📅 วันที่ / เดือน / ปี:</label>
+        <input type="date" id="dateInput">
+    </div>
     
     <div class="form-group">
-        <label for="truckId">ทะเบียนรถ / เบอร์รถ:</label>
-        <input type="text" id="truckId" placeholder="เช่น 10-1234 หรือ บ-01">
+        <label>🔢 ทะเบียนรถ / เบอร์รถ:</label>
+        <input type="text" id="truckId" placeholder="เช่น 67-1430">
     </div>
 
     <div class="form-group">
-        <label for="route">เส้นทาง (จากไหนไปไหน):</label>
-        <input type="text" id="route" placeholder="เช่น ปทุม-ลาดหลุมแก้ว">
+        <label>📍 ตำแหน่งเริ่มต้น (ต้นทาง):</label>
+        <input type="text" id="startRoute" placeholder="เช่น ปทุมธานี">
     </div>
 
     <div class="form-group">
-        <label for="price">ค่าเที่ยว (บาท):</label>
-        <input type="number" id="price" placeholder="ใส่จำนวนเงิน">
+        <label>🏁 จุดหมายสุดท้าย (ปลายทาง):</label>
+        <input type="text" id="endRoute" placeholder="เช่น ลาดหลุมแก้ว">
     </div>
 
-    <button onclick="saveToWeb()">💾 บันทึกในเว็บ</button>
-</div>
+    <div class="form-group">
+        <label>💰 ค่าเที่ยวฐาน (บาท):</label>
+        <input type="number" id="basePrice" placeholder="ใส่จำนวนเงินพื้นฐาน เช่น 150">
+    </div>
 
-<!-- ส่วนของตารางแสดงข้อมูล -->
-<div class="history-container">
+    <button class="btn-main btn-success" onclick="saveToWeb()">💾 บันทึกในเว็บ</button>
+
+    <hr style="margin: 30px 0; border: 0; border-top: 1px dashed #ccc;">
+
+    <!-- ส่วนตารางประวัติ -->
     <h3>📊 ตารางประวัติค่าเที่ยวรถ</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>รถ</th>
-                <th>เส้นทาง</th>
-                <th>ค่าเที่ยว</th>
-                <th>จัดการ</th>
-            </tr>
-        </thead>
-        <tbody id="historyTableBody">
-            <!-- ข้อมูลจากเว็บจะมาโผล่ตรงนี้ -->
-        </tbody>
-    </table>
+    
+    <!-- ปุ่มดาวน์โหลด Excel สำหรับสิ้นเดือน -->
+    <button class="btn-main btn-excel" onclick="exportToExcel()">📥 ดาวน์โหลดรายงานสิ้นเดือน (Excel/CSV)</button>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>วัน/เดือน/ปี</th>
+                    <th>ทะเบียน</th>
+                    <th>ตำแหน่งเริ่มต้น</th>
+                    <th>จุดหมายสุดท้าย</th>
+                    <th>งานใกล้</th>
+                    <th>งานกลาง</th>
+                    <th>งานไกล</th>
+                    <th>MT ใกล้</th>
+                    <th>MT กลาง</th>
+                    <th>MT ไกล</th>
+                    <th>รวม</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody id="historyTableBody">
+                <!-- ข้อมูลจาก JavaScript จะถูกวาดตรงนี้ -->
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
-    // 1. เริ่มทำงานระบบ LIFF
+    // ตั้งค่าช่องวันที่หน้าเว็บให้เป็นวันปัจจุบันอัตโนมัติ
+    document.getElementById('dateInput').valueAsDate = new Date();
+
+    // 1. เริ่มทำงานระบบ LINE LIFF
     async function main() {
-        await liff.init({ liffId: "2010757302-yGs8r3U0" });
-        if (!liff.isLoggedIn()) {
-            liff.login();
+        try {
+            await liff.init({ liffId: "2010757302-yGs8r3U0" });
+            if (!liff.isLoggedIn()) {
+                liff.login();
+            }
+            displayHistory(); // โหลดตารางมาแสดง
+        } catch (error) {
+            console.error("LIFF ล้มเหลว:", error);
         }
-        displayHistory(); // เปิดมาให้โหลดตารางมาโชว์ทันที
     }
     main();
 
     // 2. ฟังก์ชันบันทึกข้อมูลลงบราวเซอร์เว็บ
     function saveToWeb() {
+        const dateInput = document.getElementById('dateInput').value;
         const truckId = document.getElementById('truckId').value;
-        const route = document.getElementById('route').value;
-        const price = document.getElementById('price').value;
+        const startRoute = document.getElementById('startRoute').value;
+        const endRoute = document.getElementById('endRoute').value;
+        const basePrice = parseFloat(document.getElementById('basePrice').value) || 0;
 
-        if (!truckId || !route || !price) {
+        if (!dateInput || !truckId || !startRoute || !endRoute || !basePrice) {
             alert('กรอกข้อมูลให้ครบก่อนนะมึง!');
             return;
         }
 
-        // ดึงข้อมูลเก่าในเว็บออกมาก่อน (ถ้าไม่มีให้เป็นอาร์เรย์ว่าง)
+        // แปลงฟอร์แมตวันที่ให้ดูง่าย (วว/ดด/ปปปป)
+        const dateObj = new Date(dateInput);
+        const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
+
         let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
-
-        // เพิ่มข้อมูลใหม่เข้าไป
+        
         const newTrip = {
-            id: Date.now(), // ใช้เวลาเป็น ID สุ่มไม่ให้ซ้ำกัน
+            id: Date.now(),
+            date: formattedDate,
             truckId: truckId,
-            route: route,
-            price: price
+            startRoute: startRoute,
+            endRoute: endRoute,
+            basePrice: basePrice,
+            workNear: false,
+            workMid: false,
+            workFar: false,
+            mtNear: false,
+            mtMid: false,
+            mtFar: false
         };
+
         history.push(newTrip);
-
-        // เซฟกลับลงเว็บ
         localStorage.setItem('tripHistory', JSON.stringify(history));
+        
+        // เคลียร์ค่าช่องกรอก (เหลือแค่วันที่กับทะเบียนรถไว้ จะได้ไม่ต้องพิมพ์ซ้ำบ่อยๆ)
+        document.getElementById('startRoute').value = '';
+        document.getElementById('endRoute').value = '';
+        document.getElementById('basePrice').value = '';
 
-        // เคลียร์ช่องกรอกข้อมูลให้ว่าง
-        document.getElementById('truckId').value = '';
-        document.getElementById('route').value = '';
-        document.getElementById('price').value = '';
-
-        alert('บันทึกข้อมูลลงตารางเรียบร้อยมึง!');
-        displayHistory(); // อัปเดตตารางให้เห็นทันที
+        alert('เพิ่มข้อมูลลงตารางสำเร็จมึง!');
+        displayHistory();
     }
 
-    // 3. ฟังก์ชันดึงข้อมูลมาวาดลงตาราง
+    // 3. ฟังก์ชันคำนวณเงินรวม (มึงสามารถเปลี่ยนตัวเลขบวกเพิ่มได้ตามใจชอบตรงนี้เลยนะมึง)
+    function calculateTotal(item) {
+        let total = item.basePrice;
+        if (item.workNear) total += 50;  // ติ๊กงานใกล้ บวกเพิ่ม 50
+        if (item.workMid) total += 100; // ติ๊กงานกลาง บวกเพิ่ม 100
+        if (item.workFar) total += 200; // ติ๊กงานไกล บวกเพิ่ม 200
+        if (item.mtNear) total += 60;   // ติ๊ก MT ใกล้ บวกเพิ่ม 60
+        if (item.mtMid) total += 120;   // ติ๊ก MT กลาง บวกเพิ่ม 120
+        if (item.mtFar) total += 250;   // ติ๊ก MT ไกล บวกเพิ่ม 250
+        return total;
+    }
+
+    // 4. ฟังก์ชันเมื่อติ๊ก Checkbox ให้บันทึกและคำนวณเงินใหม่ทันที
+    function updateCheckbox(id, field, checkbox) {
+        let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
+        const index = history.findIndex(item => item.id === id);
+        
+        if (index !== -1) {
+            history[index][field] = checkbox.checked;
+            localStorage.setItem('tripHistory', JSON.stringify(history));
+            
+            // อัปเดตตัวเลขยอดรวมในแถวนั้นทันทีไม่ต้องโหลดหน้าใหม่
+            const totalTd = document.getElementById(`total-${id}`);
+            totalTd.innerText = calculateTotal(history[index]) + " บาท";
+        }
+    }
+
+    // 5. ฟังก์ชันวาดตารางประวัติลงหน้าเว็บ
     function displayHistory() {
-        const history = JSON.parse(localStorage.getItem('tripHistory')) || [];
-        const tableBody = document.getElementById('historyTableBody');
-        tableBody.innerHTML = ''; // เคลียร์ตารางเก่า
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = '';
+        
+        let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
 
         if (history.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#999;">ยังไม่มีข้อมูลบันทึกไว้มึง</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="12" style="color:#999;">ยังไม่มีข้อมูลบันทึกไว้มึง</td></tr>`;
             return;
         }
 
-        // วนลูปเอาข้อมูลมาใส่ในตาราง
-        history.forEach((trip) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${trip.truckId}</td>
-                <td>${trip.route}</td>
-                <td>${trip.price} บาท</td>
+        history.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.date}</td>
+                <td>${item.truckId}</td>
+                <td>${item.startRoute}</td>
+                <td>${item.endRoute}</td>
+                <td><input type="checkbox" ${item.workNear ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'workNear', this)"></td>
+                <td><input type="checkbox" ${item.workMid ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'workMid', this)"></td>
+                <td><input type="checkbox" ${item.workFar ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'workFar', this)"></td>
+                <td><input type="checkbox" ${item.mtNear ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'mtNear', this)"></td>
+                <td><input type="checkbox" ${item.mtMid ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'mtMid', this)"></td>
+                <td><input type="checkbox" ${item.mtFar ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'mtFar', this)"></td>
+                <td id="total-${item.id}" style="font-weight:bold; color:#1e3a8a;">${calculateTotal(item)} บาท</td>
                 <td>
-                    <button class="btn-send" onclick="sendToLine('${trip.truckId}', '${trip.route}', '${trip.price}')">🟢 ส่ง LINE</button>
-                    <button class="btn-delete" onclick="deleteTrip(${trip.id})">❌ ลบ</button>
+                    <button class="btn-action btn-send" onclick="sendToLine(${item.id})">ส่ง LINE</button>
+                    <button class="btn-action btn-delete" onclick="deleteTrip(${item.id})">ลบ</button>
                 </td>
             `;
-            tableBody.appendChild(row);
+            tbody.appendChild(tr);
         });
     }
 
-    // 4. ฟังก์ชันส่งข้อมูลเข้า LINE เฉพาะแถวที่เลือก
-    function sendToLine(truckId, route, price) {
-        const messageText = `📋 บันทึกค่าเที่ยวรถใหม่\n🚛 รถ: ${truckId}\n📍 เส้นทาง: ${route}\n💰 ค่าเที่ยว: ${price} บาท`;
+    // 6. ฟังก์ชันส่งข้อมูลสรุปงานแต่ละวันเข้า LINE
+    function sendToLine(id) {
+        let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
+        const item = history.find(t => t.id === id);
+
+        if (!item) return;
+
+        // เปลี่ยนสถานะ Checkbox ให้เป็นสัญลักษณ์เอาไปอ่านในไลน์ง่ายๆ
+        const checkNear = item.workNear ? "✅ ใกล้" : "❌ ใกล้";
+        const checkMid  = item.workMid  ? "✅ กลาง" : "❌ กลาง";
+        const checkFar  = item.workFar  ? "✅ ไกล" : "❌ ไกล";
+        const checkMtNear = item.mtNear ? "✅ MT ใกล้" : "❌ MT ใกล้";
+        const checkMtMid  = item.mtMid  ? "✅ MT กลาง" : "❌ MT กลาง";
+        const checkMtFar  = item.mtFar  ? "✅ MT ไกล" : "❌ MT ไกล";
+
+        const messageText = `📋 บันทึกค่าเที่ยวรถใหม่\n` +
+                            `📅 วันที่: ${item.date}\n` +
+                            `CN: ${item.truckId}\n` +
+                            `📍 เส้นทาง: ${item.startRoute} - ${item.endRoute}\n` +
+                            `------------------------\n` +
+                            `📊 รายการงานที่วิ่ง:\n` +
+                            `${checkNear}\n` +
+                            `${checkMid}\n` +
+                            `${checkFar}\n` +
+                            `${checkMtNear}\n` +
+                            `${checkMtMid}\n` +
+                            `${checkMtFar}\n` +
+                            `------------------------\n` +
+                            `💰 ยอดรวมทั้งสิ้น: ${calculateTotal(item)} บาท`;
 
         liff.sendMessages([{
             type: 'text',
             text: messageText
         }]).then(() => {
-            alert('ส่งเข้า LINE สำเร็จแล้วมึง!');
+            alert('ส่งข้อมูลเข้าแชทเรียบร้อยแล้วมึง! 🚀');
         }).catch((err) => {
-            console.error('เกิดข้อผิดพลาด:', err);
-            alert('ส่งข้อมูลไม่สำเร็จมึง ลองดูอีกที');
+            console.error('ส่งไลน์ล้มเหลว', err);
         });
     }
 
-    // 5. ฟังก์ชันลบข้อมูลออกจากตารางเว็บ
+    // 7. ฟังก์ชันดึงรายงานออกมาเป็นไฟล์ Excel (CSV) สำหรับสิ้นเดือนไว้เทียบกับหัวหน้า
+    function exportToExcel() {
+        let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
+        if (history.length === 0) {
+            alert('ไม่มีข้อมูลในตารางจะให้ดึงเลยมึง ไปกรอกข้อมูลก่อน!');
+            return;
+        }
+
+        // หัวตารางไฟล์ Excel
+        let csvContent = "\uFEFF"; // ใส่ BOM รองรับภาษาไทยไม่ให้กลายเป็นต่างดาว
+        csvContent += "วัน/เดือน/ปี,ทะเบียนรถ,ต้นทาง,ปลายทาง,งานใกล้,งานกลาง,งานไกล,MTใกล้,MTกลาง,MTไกล,ราคารวม(บาท)\n";
+
+        // วนลูปเอาข้อมูลทุกวันแปลงเป็นแถวตัวหนังสือ
+        history.forEach(item => {
+            const row = [
+                item.date,
+                item.truckId,
+                item.startRoute,
+                item.endRoute,
+                item.workNear ? "TRUE" : "FALSE",
+                item.workMid ? "TRUE" : "FALSE",
+                item.workFar ? "TRUE" : "FALSE",
+                item.mtNear ? "TRUE" : "FALSE",
+                item.mtMid ? "TRUE" : "FALSE",
+                item.mtFar ? "TRUE" : "FALSE",
+                calculateTotal(item)
+            ].join(",");
+            csvContent += row + "\n";
+        });
+
+        // สร้างลิงก์ดาวน์โหลดไฟล์ออกมาจากบราวเซอร์
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `รายงานค่าเที่ยวรถ_สิ้นเดือน_${new Date().getMonth()+1}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // 8. ฟังก์ชันลบแถวข้อมูล
     function deleteTrip(id) {
-        if (confirm('มึงแน่ใจนะว่าจะลบรายการนี้?')) {
+        if(confirm('จะลบรายการนี้จริงหรอถามจริง?')) {
             let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
-            // กรองเอาไอดีที่ไม่ต้องการลบเก็บไว้
-            history = history.filter(trip => trip.id !== id);
+            history = history.filter(item => item.id !== id);
             localStorage.setItem('tripHistory', JSON.stringify(history));
-            displayHistory(); // อัปเดตตารางใหม่
+            displayHistory();
         }
     }
 </script>
