@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บันทึกค่าเที่ยวรถ</title>
+    <!-- นำเข้า LINE SDK เพื่อให้แอปคุยกับ LINE ในโทรศัพท์ได้ -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🚚 บันทึกค่าเที่ยวรถ</h2>
+    
+    <div class="form-group">
+        <label for="truckId">ทะเบียนรถ / เบอร์รถ:</label>
+        <input type="text" id="truckId" placeholder="เช่น 10-1234 หรือ บ-01">
+    </div>
+
+    <div class="form-group">
+        <label for="route">เส้นทาง (จากไหนไปไหน):</label>
+        <input type="text" id="route" placeholder="เช่น กรุงเทพฯ - เชียงใหม่">
+    </div>
+
+    <div class="form-group">
+        <label for="price">ค่าเที่ยว (บาท):</label>
+        <input type="number" id="price" placeholder="ใส่จำนวนเงิน">
+    </div>
+
+    <button onclick="sendData()">💾 บันทึกและส่งข้อมูล</button>
+</div>
+
+<script>
+    // 1. สั่งให้ระบบ LIFF เริ่มทำงานทันทีที่เปิดหน้าเว็บ
+    async function main() {
+        await liff.init({ liffId: "ใส่_LIFF_ID_ของมึงตรงนี้" });
+        if (!liff.isLoggedIn()) {
+            liff.login(); // ถ้าเปิดมาแล้วยังไม่ได้ล็อกอิน ให้เด้งล็อกอิน LINE
+        }
+    }
+    main();
+
+    // 2. ฟังก์ชันส่งข้อมูลพอกดปุ่มบันทึก
+    function sendData() {
+        const truckId = document.getElementById('truckId').value;
+        const route = document.getElementById('route').value;
+        const price = document.getElementById('price').value;
+
+        if (!truckId || !route || !price) {
+            alert('กรอกข้อมูลให้ครบก่อนนะมึง!');
+            return;
+        }
+
+        // จัดข้อความที่จะส่งกลับเข้าห้องแชท LINE
+        const messageText = `📋 บันทึกค่าเที่ยวรถใหม่\n🚛 รถ: ${truckId}\n📍 เส้นทาง: ${route}\n💰 ค่าเที่ยว: ${price} บาท`;
+
+        // สั่งส่งข้อความเข้าไปในแชทและปิดหน้าต่างเว็บทันที
+        liff.sendMessages([{
+            type: 'text',
+            text: messageText
+        }]).then(() => {
+            liff.closeWindow(); // ส่งเสร็จปุ๊บ ปิดหน้าจอเว็บแอปทันที
+        }).catch((err) => {
+            console.error('เกิดข้อผิดพลาด:', err);
+            alert('ส่งข้อมูลไม่สำเร็จมึง ลองดูอีกที');
+        });
+    }
+</script>
+
+</body>
+</html>
