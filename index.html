@@ -175,37 +175,52 @@
             localStorage.setItem('tripHistory', JSON.stringify(history));
         }
     }
-
-    function displayHistory() {
-        const tbody = document.getElementById('historyTableBody');
-        tbody.innerHTML = '';
+// 6. ฟังก์ชันจับภาพตารางประวัติทั้งหมดแปลงเป็นรูปภาพ (เวอร์ชันแก้ปัญหา LINE บล็อกเซฟรูป)
+    function generateTableImage() {
         let history = JSON.parse(localStorage.getItem('tripHistory')) || [];
-
         if (history.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="12" style="color:#999;">ยังไม่มีข้อมูลบันทึกไว้มึง</td></tr>`;
+            alert('ไม่มีข้อมูลในตารางจะให้แคปเลยมึง กรอกข้อมูลก่อน!');
             return;
         }
 
-        history.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${item.date}</td>
-                <td>${item.truckId}</td>
-                <td>${item.startRoute}</td>
-                <td>${item.endRoute}</td>
-                <td><input type="checkbox" ${item.workNear ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'workNear', this)"></td>
-                <td><input type="checkbox" ${item.workMid ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'workMid', this)"></td>
-                <td><input type="checkbox" ${item.workFar ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'workFar', this)"></td>
-                <td><input type="checkbox" ${item.mtNear ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'mtNear', this)"></td>
-                <td><input type="checkbox" ${item.mtMid ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'mtMid', this)"></td>
-                <td><input type="checkbox" ${item.mtFar ? 'checked' : ''} onchange="updateCheckbox(${item.id}, 'mtFar', this)"></td>
-                <td style="font-weight:bold; color:#1e3a8a;">${calculateTotal(item)} บาท</td>
-                <td>
-                    <button class="btn-action btn-send" onclick="sendToLine(${item.id})">ส่ง LINE</button>
-                    <button class="btn-action btn-delete" onclick="deleteTrip(${item.id})">ลบ</button>
-                </td>
-            `;
-            tbody.appendChild(tr);
+        const target = document.getElementById('captureTarget');
+
+        // สั่งแคปตาราง
+        html2canvas(target, {
+            backgroundColor: "#ffffff",
+            logging: false,
+            useCORS: true
+        }).then(canvas => {
+            // แปลงเป็นข้อมูลรูปภาพ Base64
+            const imgData = canvas.toDataURL('image/png');
+            
+            // สร้างหน้าต่าง Pop-up ใหม่เพื่อเปิดรูปภาพนี้แยกออกมา
+            const newWindow = window.open();
+            if (newWindow) {
+                newWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>รายงานตารางค่าเที่ยวรถ</title>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <style>
+                            body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f4f6f9; font-family: sans-serif; padding: 20px; }
+                            img { max-width: 100%; height: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #ccc; }
+                            .notice { margin-bottom: 15px; background: #1e3a8a; color: white; padding: 10px 15px; border-radius: 6px; font-size: 14px; text-align: center; font-weight: bold; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="notice">✨ เปิดหน้ารายงานสำเร็จ! มึงกดปุ่มแชร์หรือเซฟรูปที่มุมจอส่งเข้า LINE ได้เลยมึง</div>
+                        <img src="${imgData}" />
+                    </body>
+                    </html>
+                `);
+                newWindow.document.close();
+            } else {
+                alert('บราวเซอร์บล็อก Pop-up มึงกดอนุญาตให้เปิดหน้าต่างใหม่ก่อนนะมึง!');
+            }
+        }).catch(err => {
+            alert('เกิดข้อผิดพลาดในการสร้างรูปภาพมึงลองดูใหม่ดิ๊');
+            console.error(err);
         });
     }
 
